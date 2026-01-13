@@ -2,7 +2,7 @@ import imgpro from "../assets/product.jpg";
 import { useNavigate } from "react-router-dom";
 
 // STATIC_BASE is used only for non-HTTP images
-const STATIC_BASE = import.meta.env.VITE_API_STATIC || "https://backend-final-project1-production.up.railway.app/api";
+const STATIC_BASE = import.meta.env.VITE_API_STATIC || "https://backend-final-project1-production.up.railway.app";
 
 const Card = ({ product }) => {
   const navigate = useNavigate();
