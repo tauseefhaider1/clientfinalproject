@@ -6,10 +6,10 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
+////////////////////
   const checkAuth = async () => {
     try {
-      const res = await api.get("/api/auth/check");
+      const res = await api.get("/auth/check");
       setUser(res.data.user);
     } catch {
       setUser(null);
