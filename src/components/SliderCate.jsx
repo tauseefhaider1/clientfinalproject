@@ -5,7 +5,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import api from "../api/Azios";
 
-const BACKEND_URL = "http://localhost:4534";
+const BACKEND_URL = "https://backend-final-project1-production.up.railway.app/";
 
 const SliderCate = () => {
   const [categories, setCategories] = useState([]);

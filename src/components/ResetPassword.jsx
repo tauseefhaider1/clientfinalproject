@@ -53,7 +53,7 @@ export default function ResetPassword() {
       setError("");
 
       const res = await axios.post(
-        "http://localhost:4534/api/auth/reset-password",
+        "https://backend-final-project1-production.up.railway.app/api/auth/reset-password",
         { email, otp, newPassword }
       );
 
@@ -75,7 +75,7 @@ export default function ResetPassword() {
       setError("");
 
       const res = await axios.post(
-        "http://localhost:4534/api/auth/resend-otp",
+        "https://backend-final-project1-production.up.railway.app/api/auth/resend-otp",
         { email }
       );
 

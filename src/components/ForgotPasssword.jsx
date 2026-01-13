@@ -23,7 +23,7 @@ export default function ForgotPassword() {
       setError("");
 
       const res = await axios.post(
-        "http://localhost:4534/api/auth/forgot-password",
+        "https://backend-final-project1-production.up.railway.app/api/auth/forgot-password",
         { email }
       );
 

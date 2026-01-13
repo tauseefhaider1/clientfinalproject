@@ -37,10 +37,10 @@ const Home = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:4534/product")
+      .get("https://backend-final-project1-production.up.railway.app/product")
       .then((res) => {
         const data = res.data.products || res.data;
-        setProducts(data.slice(0, 6));
+        setProducts(data.slice(0, 200));
       })
       .catch(console.error);
   }, []);

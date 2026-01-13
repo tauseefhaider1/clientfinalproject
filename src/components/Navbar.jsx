@@ -19,13 +19,10 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
-  // Sample data
   const cartItemsCount = 0;
-  // const isLoggedIn = false; // This should come from your auth context
-  // const { user, isLoggedIn } = useAuth(); // ✅ Add this line
 const { isLoggedIn, logout } = useAuth();
 
-  // ✅ FIXED: Clean menu items without duplicates
+  // FIXED: Clean menu items without duplicates
   const menuItems = [
     { name: "Home", path: "/" },
     { name: "Products", path: "/products" },
