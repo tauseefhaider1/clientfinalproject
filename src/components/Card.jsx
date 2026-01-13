@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 // ✅ use env if available, fallback for dev
 const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "https://backend-final-project1-production.up.railway.app/api";
+   import.meta.env.VITE_API_URL; // ✅ Use environment variable
 
 const Card = ({ product }) => {
   const navigate = useNavigate();
