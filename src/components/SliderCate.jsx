@@ -131,14 +131,15 @@ const SliderCate = () => {
                   className="w-full text-center focus:outline-none cursor-pointer group"
                 >
                   <div className="w-24 h-24 mx-auto rounded-full bg-gray-100 flex items-center justify-center shadow-md overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                    <img
-                      src={imageSrc}
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://via.placeholder.com/96?text=Category";
-                      }}
-                    />
+                   <img
+  src={`${import.meta.env.VITE_API_URL}${item.img}`} 
+  alt={item.title}
+  className="w-full h-full object-cover"
+  onError={(e) => {
+    e.currentTarget.src = `${import.meta.env.VITE_API_URL}/uploads/default-category.png`;
+  }}
+/>
+
                   </div>
 
                   <p className="mt-3 text-sm font-medium text-gray-700 group-hover:text-black group-hover:font-bold truncate px-2">
