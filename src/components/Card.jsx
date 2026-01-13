@@ -1,9 +1,8 @@
 import imgpro from "../assets/product.jpg";
 import { useNavigate } from "react-router-dom";
 
-// ✅ use env if available, fallback for dev
-const BACKEND_URL =
-   import.meta.env.VITE_API_URL; // ✅ Use environment variable
+const API_BASE = import.meta.env.VITE_API_URL; // for API calls
+const STATIC_BASE = import.meta.env.VITE_API_STATIC || "https://backend-final-project1-production.up.railway.app";
 
 const Card = ({ product }) => {
   const navigate = useNavigate();
@@ -13,7 +12,7 @@ const Card = ({ product }) => {
   const imageSrc = product?.image
     ? product.image.startsWith("http")
       ? product.image
-      : `${BACKEND_URL}${product.image}`
+      : `${STATIC_BASE}${product.image}`
     : imgpro;
 
   return (
@@ -26,18 +25,15 @@ const Card = ({ product }) => {
         alt={product?.name || "product"}
         className="w-full h-56 object-cover"
         onError={(e) => {
-          e.currentTarget.onerror = null; // prevent loop
+          e.currentTarget.onerror = null;
           e.currentTarget.src = imgpro;
         }}
       />
-
       <div className="p-4 space-y-2">
         <h2 className="font-bold text-lg">{product.name}</h2>
-
         <p className="text-gray-600">
           Rs {Number(product.price || 0).toLocaleString()}
         </p>
-
         <span
           className={`text-xs px-3 py-1 rounded-full ${
             product.stockStatus === "in"
