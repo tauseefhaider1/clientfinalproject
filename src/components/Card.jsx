@@ -1,6 +1,7 @@
 import imgpro from "../assets/product.jpg";
 import { useNavigate } from "react-router-dom";
 
+// STATIC_BASE is used only for non-HTTP images
 const STATIC_BASE = import.meta.env.VITE_API_STATIC || "https://backend-final-project1-production.up.railway.app";
 
 const Card = ({ product }) => {
@@ -8,11 +9,12 @@ const Card = ({ product }) => {
 
   if (!product) return null;
 
+  // Determine image source
   const imageSrc =
     product.image && product.image !== ""
       ? product.image.startsWith("http")
         ? product.image
-        : `${STATIC_BASE}${product.image}`
+        : `${STATIC_BASE}${product.image}` // prepend static base
       : imgpro;
 
   return (
@@ -26,7 +28,7 @@ const Card = ({ product }) => {
         className="w-full h-56 object-cover"
         onError={(e) => {
           e.currentTarget.onerror = null; // prevent infinite loop
-          e.currentTarget.src = imgpro;
+          e.currentTarget.src = imgpro; // fallback image
         }}
       />
 
