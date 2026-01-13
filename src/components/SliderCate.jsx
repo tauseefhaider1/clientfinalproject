@@ -10,7 +10,17 @@ const SliderCate = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const BACKEND_URL = import.meta.env.VITE_API_URL; // ✅ Use environment variable
+  const STATIC_BASE =
+    import.meta.env.VITE_API_STATIC ||
+    "https://backend-final-project1-production.up.railway.app";
+
+  // Helper to get image URL with fallback
+  const getImageUrl = (imgPath) => {
+    if (!imgPath || imgPath === "") {
+      return `${STATIC_BASE}/uploads/default-category.png`;
+    }
+    return imgPath.startsWith("http") ? imgPath : `${STATIC_BASE}${imgPath}`;
+  };
 
   /* =========================
      FETCH CATEGORIES
@@ -18,18 +28,13 @@ const SliderCate = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-const { data } = await api.get("categories"); // ✅ No extra /api
+        const { data } = await api.get("categories"); // ✅ no extra /api
         console.log("API RESPONSE 👉", data);
 
-        // Handle different response formats
         let categoriesData = [];
-        if (Array.isArray(data)) {
-          categoriesData = data;
-        } else if (Array.isArray(data.categories)) {
-          categoriesData = data.categories;
-        } else if (Array.isArray(data.data)) {
-          categoriesData = data.data;
-        }
+        if (Array.isArray(data)) categoriesData = data;
+        else if (Array.isArray(data.categories)) categoriesData = data.categories;
+        else if (Array.isArray(data.data)) categoriesData = data.data;
 
         setCategories(categoriesData);
       } catch (err) {
@@ -40,7 +45,7 @@ const { data } = await api.get("categories"); // ✅ No extra /api
     };
 
     fetchCategories();
-  }, [BACKEND_URL]);
+  }, []);
 
   /* =========================
      SLIDER SETTINGS
@@ -107,37 +112,30 @@ const { data } = await api.get("categories"); // ✅ No extra /api
         </div>
 
         <Slider {...settings}>
-          {categories.map((item) => {
-            const imageSrc =
-              item.img && item.img !== ""
-                ? `${BACKEND_URL}${item.img}`
-                : `${BACKEND_URL}/uploads/default-category.png`;
+          {categories.map((item) => (
+            <div key={item._id} className="px-5">
+              <button
+                type="button"
+                onClick={() => handleCategoryClick(item)}
+                className="w-full text-center focus:outline-none cursor-pointer group"
+              >
+                <div className="w-24 h-24 mx-auto rounded-full bg-gray-100 flex items-center justify-center shadow-md overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                  <img
+                    src={getImageUrl(item.img || item.image)}
+                    alt={item.title || item.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = `${STATIC_BASE}/uploads/default-category.png`;
+                    }}
+                  />
+                </div>
 
-            return (
-              <div key={item._id} className="px-5">
-                <button
-                  type="button"
-                  onClick={() => handleCategoryClick(item)}
-                  className="w-full text-center focus:outline-none cursor-pointer group"
-                >
-                  <div className="w-24 h-24 mx-auto rounded-full bg-gray-100 flex items-center justify-center shadow-md overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                    <img
-                      src={imageSrc}
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = `${BACKEND_URL}/uploads/default-category.png`;
-                      }}
-                    />
-                  </div>
-
-                  <p className="mt-3 text-sm font-medium text-gray-700 group-hover:text-black group-hover:font-bold truncate px-2">
-                    {item.title}
-                  </p>
-                </button>
-              </div>
-            );
-          })}
+                <p className="mt-3 text-sm font-medium text-gray-700 group-hover:text-black group-hover:font-bold truncate px-2">
+                  {item.title || item.name}
+                </p>
+              </button>
+            </div>
+          ))}
         </Slider>
       </div>
     </div>
