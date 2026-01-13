@@ -5,12 +5,12 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import api from "../api/Azios";
 
-const BACKEND_URL = "https://backend-final-project1-production.up.railway.app/";
-
 const SliderCate = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const BACKEND_URL = import.meta.env.VITE_API_URL; // ✅ Use environment variable
 
   /* =========================
      FETCH CATEGORIES
@@ -18,7 +18,7 @@ const SliderCate = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const { data } = await api.get("/api/categories");
+        const { data } = await api.get(`${BACKEND_URL}/categories`);
         console.log("API RESPONSE 👉", data);
 
         // Handle different response formats
@@ -40,7 +40,7 @@ const SliderCate = () => {
     };
 
     fetchCategories();
-  }, []);
+  }, [BACKEND_URL]);
 
   /* =========================
      SLIDER SETTINGS
@@ -65,18 +65,9 @@ const SliderCate = () => {
   };
 
   const handleCategoryClick = (category) => {
-    console.log("Clicked category:", category);
-    
-    // Option 1: Navigate to category products page
     navigate(`/category/${category._id}`, {
-      state: {
-        categoryName: category.title,
-        categoryId: category._id
-      }
+      state: { categoryName: category.title, categoryId: category._id },
     });
-    
-    // Option 2: You could also pass as query params
-    // navigate(`/products?category=${category._id}`);
   };
 
   /* =========================
@@ -91,7 +82,7 @@ const SliderCate = () => {
     );
   }
 
-  if (categories.length === 0) {
+  if (!categories || categories.length === 0) {
     return (
       <div className="text-center py-10 text-gray-500">
         No categories available
@@ -114,14 +105,13 @@ const SliderCate = () => {
             View All →
           </button>
         </div>
-        
+
         <Slider {...settings}>
           {categories.map((item) => {
-            const imageSrc = item.img
-              ? item.img.startsWith("http")
-                ? item.img
-                : `${BACKEND_URL}${item.img}`
-              : "https://via.placeholder.com/96?text=Category";
+            const imageSrc =
+              item.img && item.img !== ""
+                ? `${BACKEND_URL}${item.img}`
+                : `${BACKEND_URL}/uploads/default-category.png`;
 
             return (
               <div key={item._id} className="px-5">
@@ -131,15 +121,14 @@ const SliderCate = () => {
                   className="w-full text-center focus:outline-none cursor-pointer group"
                 >
                   <div className="w-24 h-24 mx-auto rounded-full bg-gray-100 flex items-center justify-center shadow-md overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                   <img
-  src={`${import.meta.env.VITE_API_URL}${item.img}`} 
-  alt={item.title}
-  className="w-full h-full object-cover"
-  onError={(e) => {
-    e.currentTarget.src = `${import.meta.env.VITE_API_URL}/uploads/default-category.png`;
-  }}
-/>
-
+                    <img
+                      src={imageSrc}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = `${BACKEND_URL}/uploads/default-category.png`;
+                      }}
+                    />
                   </div>
 
                   <p className="mt-3 text-sm font-medium text-gray-700 group-hover:text-black group-hover:font-bold truncate px-2">
