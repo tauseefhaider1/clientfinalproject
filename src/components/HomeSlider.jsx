@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import img1 from '../assets/image1.avif';
 import img2 from '../assets/image2.avif';
 import { BsChevronCompactLeft, BsChevronCompactRight } from 'react-icons/bs';
+import { useNavigate } from 'react-router-dom'; // ✅ import useNavigate
 
 const HomeSlider = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const navigate = useNavigate(); // ✅ initialize navigate
 
     const slides = [
         {
@@ -41,9 +43,7 @@ const HomeSlider = () => {
     }, [currentIndex]);
 
     return (
-        // Full width slider
-        <div className="relative w-full h-[500px] overflow-hidden group ">
-            
+        <div className="relative w-full h-[500px] overflow-hidden group">
             {/* Background Image */}
             <div
                 className="w-full h-full bg-cover bg-center transition-transform duration-[1500ms] scale-105"
@@ -51,7 +51,6 @@ const HomeSlider = () => {
             >
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30">
-
                     {/* Content */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center max-w-3xl px-4 text-white">
                         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4 drop-shadow-lg animate-fadeIn">
@@ -62,7 +61,11 @@ const HomeSlider = () => {
                             {slides[currentIndex].description}
                         </p>
 
-                        <button className="px-10 py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold hover:bg-white hover:text-black transition-all duration-300 shadow-xl">
+                        {/* ✅ Updated button with navigation */}
+                        <button
+                            onClick={() => navigate("/products")}
+                            className="px-10 py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold hover:bg-white hover:text-black transition-all duration-300 shadow-xl"
+                        >
                             Shop Collection
                         </button>
                     </div>
