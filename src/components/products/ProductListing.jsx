@@ -48,7 +48,7 @@ const ProductListing = () => {
         setCategories(categoriesData);
 
         // Fetch products
-        return axios.get("https://backend-final-project1-production.up.railway.app/product");
+        return axios.get("https://backend-final-project1-production.up.railway.app/api/product");
       })
       .then((res) => {
         let productsData = [];

@@ -37,7 +37,7 @@ const Home = () => {
 
   useEffect(() => {
     axios
-      .get("https://backend-final-project1-production.up.railway.app/product")
+      .get("https://backend-final-project1-production.up.railway.app//api/product")
       .then((res) => {
         const data = res.data.products || res.data;
         setProducts(data.slice(0, 200));
