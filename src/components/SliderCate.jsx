@@ -18,7 +18,7 @@ const SliderCate = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-const { data } = await api.get("/categories"); // ✅ No extra /api
+const { data } = await api.get("categories"); // ✅ No extra /api
         console.log("API RESPONSE 👉", data);
 
         // Handle different response formats
