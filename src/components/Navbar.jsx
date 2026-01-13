@@ -35,15 +35,16 @@ const { isLoggedIn, logout } = useAuth();
       { name: "My Profile", path: "/profile" }
     ] : [])
   ];
+const handleSearch = (e) => {
+  e.preventDefault();
+  if (searchQuery.trim()) {
+    // Navigate to ProductListing with query param
+    navigate(`/products?q=${encodeURIComponent(searchQuery)}`);
+    setSearchOpen(false);
+    setSearchQuery("");
+  }
+};
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchOpen(false);
-      setSearchQuery("");
-    }
-  };
 
   const handleAccountClick = () => {
     if (isLoggedIn) {
