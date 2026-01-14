@@ -3,6 +3,7 @@ import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import FiltersSidebar from "./FiltersSidebar";
 import Card from "../Card";
+import ProductFilter from "./productfilter"; // Add this import
 
 const ProductListing = () => {
   const location = useLocation();
@@ -11,6 +12,7 @@ const ProductListing = () => {
   // ✅ Get search query from URL
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("q") || "";
+  const categoryFromURL = queryParams.get("category"); // Get category from URL too
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -22,13 +24,33 @@ const ProductListing = () => {
 
   const fetchedRef = useRef(false);
 
-  // ✅ Check if category comes from state (e.g., clicking category in Navbar)
+  // ✅ Check if category comes from URL or state
   useEffect(() => {
-    const categoryFromState = location.state?.category;
-    if (categoryFromState) {
-      setSelectedCategory(categoryFromState);
+    if (categoryFromURL) {
+      setSelectedCategory(categoryFromURL);
+    } else {
+      const categoryFromState = location.state?.category;
+      if (categoryFromState) {
+        setSelectedCategory(categoryFromState);
+      }
     }
-  }, [location.state]);
+  }, [categoryFromURL, location.state]);
+
+  // ✅ Handle search input
+  const handleSearch = (searchTerm) => {
+    // Update URL with search query
+    const params = new URLSearchParams();
+    
+    if (selectedCategory !== "all") {
+      params.set('category', selectedCategory);
+    }
+    
+    if (searchTerm) {
+      params.set('q', searchTerm);
+    }
+    
+    navigate(`/products${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
+  };
 
   // ✅ Fetch products and categories
   useEffect(() => {
@@ -93,7 +115,8 @@ const ProductListing = () => {
       } else if (product.category !== selectedCategory) return false;
     }
 
-    if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    // ✅ UNCOMMENT AND FIX THIS LINE - Add search filter
+    if (searchQuery && !product.name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
 
     return true;
   });
@@ -129,7 +152,15 @@ const ProductListing = () => {
 
   const handleCategorySelect = (categoryId) => {
     setSelectedCategory(categoryId);
-    navigate(`/products${categoryId !== "all" ? `?category=${categoryId}` : ""}`, { replace: true });
+    // Keep search query in URL when changing category
+    const params = new URLSearchParams();
+    if (categoryId !== "all") {
+      params.set('category', categoryId);
+    }
+    if (searchQuery) {
+      params.set('q', searchQuery);
+    }
+    navigate(`/products${params.toString() ? `?${params.toString()}` : ""}`, { replace: true });
   };
 
   if (loading) {
@@ -162,6 +193,14 @@ const ProductListing = () => {
 
       {/* Products Section */}
       <div className="md:col-span-4">
+        {/* ✅ Add ProductFilter component here */}
+        <div className="mb-6">
+          <ProductFilter 
+            search={searchQuery} 
+            setSearch={handleSearch} 
+          />
+        </div>
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">
             {searchQuery
@@ -183,12 +222,23 @@ const ProductListing = () => {
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-white text-xl">No products found</p>
+            {searchQuery && (
+              <p className="text-gray-400 mt-2">Try different search terms or clear the search</p>
+            )}
             {selectedCategory !== "all" && (
               <button
                 onClick={() => handleCategorySelect("all")}
                 className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 View All Products
+              </button>
+            )}
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch("")}
+                className="mt-4 ml-4 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              >
+                Clear Search
               </button>
             )}
           </div>
