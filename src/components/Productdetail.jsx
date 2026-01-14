@@ -65,25 +65,41 @@ const ProductDetail = () => {
 
   // Add to cart
   const handleAddToCart = async () => {
-    if (!user) {
-      navigate("/login", { state: { from: location.pathname } });
-      return;
-    }
-    if (!product || product.stockStatus === "out") return alert("Out of stock");
+  if (!user) {
+    navigate("/login", { state: { from: location.pathname } });
+    return;
+  }
+  if (!product || product.stockStatus === "out") return alert("Out of stock");
 
-    try {
-      const res = await api.post(
-        "/cart/add",
-        { productId: product._id, quantity },
-        { withCredentials: true } // send cookies for auth
-      );
-      alert(res.data.message || "Added to cart");
-    } catch (err) {
-      console.error("Add to cart failed:", err.response || err);
-      alert(err.response?.data?.message || "Failed to add to cart");
-    }
-  };
+  try {
+    console.log("Adding to cart with:", {
+      productId: product._id,
+      quantity,
+      userId: user._id,
+      token: user.token
+    });
 
+    // Try with explicit headers
+    const res = await api.post(
+      "/cart/add",
+      { 
+        productId: product._id, 
+        quantity 
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${user.token || localStorage.getItem("token")}`
+        }
+      }
+    );
+    
+    alert(res.data.message || "Added to cart");
+  } catch (err) {
+    console.error("Add to cart failed:", err);
+    console.error("Full error:", err.response?.data);
+    alert(err.response?.data?.message || "Failed to add to cart");
+  }
+};
   // Buy now → add to cart then go to cart page
   const handleBuyNow = async () => {
     if (!user) {
