@@ -50,24 +50,26 @@ const SliderCate = () => {
   /* =========================
      SLIDER SETTINGS
   ========================= */
-  const settings = {
-    infinite: true,
-    slidesToShow: 5,
-    slidesToScroll: 1,
-    centerMode: true,
-    centerPadding: "0px",
-    autoplay: true,
-    autoplaySpeed: 2500,
-    speed: 700,
-    cssEase: "ease-in-out",
-    arrows: false,
-    pauseOnHover: true,
-    responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 4 } },
-      { breakpoint: 768, settings: { slidesToShow: 3 } },
-      { breakpoint: 480, settings: { slidesToShow: 2 } },
-    ],
-  };
+ const settings = {
+  infinite: true,
+  slidesToShow: 5, // desktop
+  slidesToScroll: 1,
+  centerMode: true,
+  centerPadding: "0px",
+  autoplay: true,
+  autoplaySpeed: 2500,
+  speed: 700,
+  cssEase: "ease-in-out",
+  arrows: false,
+  pauseOnHover: true,
+  responsive: [
+    { breakpoint: 1024, settings: { slidesToShow: 4, centerMode: false } },
+    { breakpoint: 768, settings: { slidesToShow: 3, centerMode: false } },
+    { breakpoint: 480, settings: { slidesToShow: 2, centerMode: false } },
+    { breakpoint: 360, settings: { slidesToShow: 1, centerMode: false } }, // very small screens
+  ],
+};
+
 
   const handleCategoryClick = (category) => {
     navigate(`/category/${category._id}`, {
