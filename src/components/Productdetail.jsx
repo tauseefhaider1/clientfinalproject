@@ -72,7 +72,7 @@ const ProductDetail = () => {
     if (!product || product.stockStatus === "out") return alert("Out of stock");
 
     try {
-      await api.post("/api/cart/add", { productId: product._id, quantity });
+      await api.post("/cart/add", { productId: product._id, quantity });
       alert("Added to cart");
     } catch {
       alert("Failed to add to cart");
