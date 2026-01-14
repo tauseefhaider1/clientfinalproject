@@ -58,7 +58,7 @@ const handleAvatarUpload = async () => {
     const formData = new FormData();
     formData.append("avatar", avatar);
 
-    const res = await api.put("/api/auth/profile/avatar", formData, {
+    const res = await api.put("/auth/profile/avatar", formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }

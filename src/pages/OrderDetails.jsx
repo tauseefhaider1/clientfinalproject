@@ -14,7 +14,7 @@ export default function OrderDetails() {
         setLoading(true);
         setError("");
         
-        const response = await api.get(`/api/orders/${id}`);
+        const response = await api.get(`/orders/${id}`);
         
         if (response.data.success) {
           setOrder(response.data.order);

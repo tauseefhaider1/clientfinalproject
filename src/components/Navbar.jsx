@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo1.png";
 import { useAuth } from "../context/AuthContext";
-// Icons
 import api from "../api/Azios";
+
+// Icons
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
@@ -13,306 +14,236 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem("theme") === "dark"
+  );
+
   const navigate = useNavigate();
+  const { isLoggedIn, logout } = useAuth();
 
   const cartItemsCount = 0;
-const { isLoggedIn, logout } = useAuth();
 
-  // FIXED: Clean menu items without duplicates
+  // 🔥 Persist dark mode
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [darkMode]);
+
   const menuItems = [
     { name: "Home", path: "/" },
     { name: "Products", path: "/products" },
     { name: "About", path: "/about" },
     { name: "FAQ", path: "/faq" },
     { name: "Cart", path: "/cart" },
-    // Only show these when logged in
-    ...(isLoggedIn ? [
-      { name: "My Orders", path: "/my-orders" },
-      { name: "My Profile", path: "/profile" }
-    ] : [])
+    ...(isLoggedIn
+      ? [
+          { name: "My Orders", path: "/my-orders" },
+          { name: "Profile", path: "/profile" },
+        ]
+      : []),
   ];
-const handleSearch = (e) => {
-  e.preventDefault();
-  if (searchQuery.trim()) {
-    // Navigate to ProductListing with query param
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
     navigate(`/products?q=${encodeURIComponent(searchQuery)}`);
-    setSearchOpen(false);
     setSearchQuery("");
-  }
-};
-
-
-  const handleAccountClick = () => {
-    if (isLoggedIn) {
-      navigate("/profile"); // Changed from /account to /profile
-    } else {
-      navigate("/login");
-    }
+    setSearchOpen(false);
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+  const handleLogout = async () => {
+    try {
+      await api.post(
+        "/auth/logout", // ✅ FIXED (NO /api/api)
+        {},
+        { withCredentials: true }
+      );
+      logout();
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout error", err);
+    } finally {
+      setMenuOpen(false);
     }
   };
 
   return (
     <>
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            
-            {/* Left: Hamburger Menu */}
-            <div className="flex items-center">
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                {isMenuOpen ? (
-                  <CloseIcon className="w-6 h-6" />
-                ) : (
-                  <MenuIcon className="w-6 h-6" />
-                )}
-              </button>
-            </div>
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          
+          {/* LEFT */}
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <MenuIcon />
+          </button>
 
-            {/* Center: Logo */}
-            <div className="flex items-center justify-center flex-1">
-              <Link to="/" className="flex items-center">
-                <img 
-                  src={logo} 
-                  alt="Logo" 
-                  className="h-10 w-auto"
-                />
-              </Link>
-            </div>
+          {/* CENTER LOGO */}
+          <Link to="/" className="flex-1 flex justify-center">
+            <img src={logo} alt="Logo" className="h-9" />
+          </Link>
 
-            {/* Right: Action Icons */}
-            <div className="flex items-center space-x-4">
-              {/* Search Icon */}
-              <div className="relative">
-                {searchOpen && (
-                  <div className="absolute right-0 top-12 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50">
-                    <form onSubmit={handleSearch} className="relative">
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search products..."
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300 dark:border-gray-600"
-                        autoFocus
-                      />
-                      <button
-                        type="submit"
-                        className="absolute right-2 top-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                      >
-                        <SearchIcon />
-                      </button>
-                    </form>
-                  </div>
-                )}
-                <button
-                  onClick={() => setSearchOpen(!searchOpen)}
-                  className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <SearchIcon className="w-5 h-5" />
-                </button>
-              </div>
+          {/* RIGHT ICONS */}
+          <div className="flex items-center gap-2">
+            {/* Search */}
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <SearchIcon />
+            </button>
 
-              {/* Dark/Light Mode Toggle */}
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                {darkMode ? (
-                  <Brightness7Icon className="w-5 h-5" />
-                ) : (
-                  <Brightness4Icon className="w-5 h-5" />
-                )}
-              </button>
+            {/* Theme */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </button>
 
-              {/* Cart Icon */}
-              <button 
-                onClick={() => navigate('/cart')}
-                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
-              >
-                <ShoppingCartIcon className="w-5 h-5" />
-                {cartItemsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {cartItemsCount}
-                  </span>
-                )}
-              </button>
+            {/* Cart */}
+            <button
+              onClick={() => navigate("/cart")}
+              className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <ShoppingCartIcon />
+              {cartItemsCount > 0 && (
+                <span className="absolute -top-1 -right-1 text-xs bg-red-500 text-white w-5 h-5 flex items-center justify-center rounded-full">
+                  {cartItemsCount}
+                </span>
+              )}
+            </button>
 
-              {/* ✅ FIXED: Uncomment and update Account Icon */}
-              <button 
-                onClick={handleAccountClick}
-                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                <PersonOutlineIcon className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Account */}
+            <button
+              onClick={() =>
+                navigate(isLoggedIn ? "/profile" : "/login")
+              }
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <PersonOutlineIcon />
+            </button>
           </div>
         </div>
 
-        {/* Mobile Menu (Drawer from Left - Always Visible When Open) */}
-        {isMenuOpen && (
-          <div className="fixed inset-0 z-40">
-            {/* Overlay */}
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={() => setIsMenuOpen(false)}
-            ></div>
-            
-            {/* Menu Drawer */}
-<div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 shadow-xl z-50">
-              <div className="h-full flex flex-col">
-                {/* Menu Header */}
-                <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Menu</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Navigation</p>
-                  </div>
-                  <button
-                    onClick={() => setIsMenuOpen(false)}
-                    className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
-                    <CloseIcon />
-                  </button>
-                </div>
-
-                {/* Menu Items */}
-                <nav className="flex-grow overflow-y-auto py-4">
-                  {menuItems.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      className="flex items-center px-6 py-4 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 transition-colors group"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-3 group-hover:bg-blue-500 transition-colors"></div>
-                      <span className="text-lg font-medium">{item.name}</span>
-                    </Link>
-                  ))}
-                </nav>
-
-                {/* Auth Section - ✅ FIXED: Updated for profile/orders */}
-                <div className="px-6 py-6 border-t border-gray-200 dark:border-gray-700">
-                  {isLoggedIn ? (
-                    <div className="space-y-4">
-                      <div className="space-y-3">
-                        <div className="text-center">
-                          <div className="w-12 h-12 mx-auto mb-3 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                            <PersonOutlineIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <p className="text-gray-700 dark:text-gray-300 mb-4">Welcome back!</p>
-                        </div>
-                        
-                        {/* Profile button */}
-                        <button
-                          onClick={() => {
-                            navigate('/profile');
-                            setIsMenuOpen(false);
-                          }}
-                          className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                        >
-                          My Profile
-                        </button>
-                        
-                        {/* Orders button */}
-                        <button
-                          onClick={() => {
-                            navigate('/my-orders');
-                            setIsMenuOpen(false);
-                          }}
-                          className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                        >
-                          My Orders
-                        </button>
-                      </div>
-                      
-              <button
-  onClick={async () => {
-    try {
-      await api.post(
-        "/api/auth/logout",
-        {},
-        { withCredentials: true } // ✅ cookie cleared
-      );
-
-      logout(); // ✅ clear auth state
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      setIsMenuOpen(false);
-    }
-  }}
-  className="w-full py-3 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
->
-  Logout
-</button>
-
-
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                          <PersonOutlineIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                        </div>
-                        <p className="text-gray-700 dark:text-gray-300 mb-4">Welcome to our store!</p>
-                        <button
-                          onClick={() => {
-                            navigate('/login');
-                            setIsMenuOpen(false);
-                          }}
-                          className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                        >
-                          Login
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => {
-                          navigate('/register');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full py-3 px-4 border-2 border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors font-medium"
-                      >
-                        Create Account
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* SEARCH DROPDOWN */}
+        {searchOpen && (
+          <div className="absolute right-4 top-16 w-[90%] sm:w-72 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-4">
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="w-full px-4 py-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-700"
+              />
+              <button className="absolute right-3 top-2.5 text-gray-500">
+                <SearchIcon />
+              </button>
+            </form>
           </div>
         )}
       </nav>
 
-      {/* Optional: Add Tailwind dark mode classes */}
-      <style jsx>{`
-        .dark {
-          color-scheme: dark;
+      {/* MOBILE DRAWER */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMenuOpen(false)}
+          />
+
+          <div className="absolute left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 shadow-xl animate-slide">
+            <div className="p-5 border-b flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Menu</h2>
+              <button onClick={() => setMenuOpen(false)}>
+                <CloseIcon />
+              </button>
+            </div>
+
+            <nav className="flex flex-col">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setMenuOpen(false)}
+                  className="px-6 py-4 border-b hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="mt-auto p-6 border-t">
+              {isLoggedIn ? (
+                <>
+                  <button
+                    onClick={() => {
+                      navigate("/profile");
+                      setMenuOpen(false);
+                    }}
+                    className="w-full mb-3 py-2 bg-blue-600 text-white rounded-lg"
+                  >
+                    My Profile
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full py-2 bg-gray-200 dark:bg-gray-700 rounded-lg"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      navigate("/login");
+                      setMenuOpen(false);
+                    }}
+                    className="w-full mb-3 py-2 bg-blue-600 text-white rounded-lg"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/register");
+                      setMenuOpen(false);
+                    }}
+                    className="w-full py-2 border border-blue-600 text-blue-600 rounded-lg"
+                  >
+                    Register
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ANIMATION */}
+      <style>{`
+        .animate-slide {
+          animation: slide 0.3s ease-out;
         }
-        @keyframes slideIn {
+        @keyframes slide {
           from {
             transform: translateX(-100%);
           }
           to {
             transform: translateX(0);
           }
-        }
-        .fixed.inset-y-0.left-0 {
-          animation: slideIn 0.3s ease-out;
         }
       `}</style>
     </>

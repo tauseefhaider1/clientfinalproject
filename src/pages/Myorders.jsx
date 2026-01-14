@@ -6,7 +6,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/api/orders/my")
+    api.get("/orders/my")
       .then(res => {
         setOrders(res.data.orders);
         setLoading(false);

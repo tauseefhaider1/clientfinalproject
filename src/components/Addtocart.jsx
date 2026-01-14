@@ -25,7 +25,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const res = await api.get("/api/cart", {
+        const res = await api.get("/cart", {
           withCredentials: true,
         });
 

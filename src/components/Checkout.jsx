@@ -28,7 +28,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const res = await api.get("/api/cart", {
+        const res = await api.get("/cart", {
           withCredentials: true,
         });
 
@@ -79,7 +79,7 @@ export default function CheckoutPage() {
 
     try {
       const res = await api.post(
-        "/api/orders/create",
+        "/orders/create",
         {
           ...formData,
           items: cartItems,
@@ -173,7 +173,7 @@ export default function CheckoutPage() {
 
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>₹{subtotal}</span>
+              <span>Rs{subtotal}</span>
             </div>
 
             <div className="flex justify-between">

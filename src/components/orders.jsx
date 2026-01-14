@@ -5,7 +5,7 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    api.get("/api/orders/my", { withCredentials: true })
+    api.get("/orders/my", { withCredentials: true })
       .then(res => setOrders(res.data.orders));
   }, []);
 
