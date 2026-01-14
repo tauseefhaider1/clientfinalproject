@@ -243,7 +243,7 @@ const handleSearch = (e) => {
   onClick={async () => {
     try {
       await api.post(
-        "/api/auth/logout",
+        "/auth/logout",
         {},
         { withCredentials: true } // ✅ cookie cleared
       );
