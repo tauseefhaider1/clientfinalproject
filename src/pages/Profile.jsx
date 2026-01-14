@@ -25,7 +25,7 @@ export default function Profile() {
         setError("");
         
         // ✅ Use correct endpoint based on your backend
-        const response = await api.get("/api/auth/me");
+        const response = await api.get("/auth/me");
         console.log("Profile response:", response.data);
         
         // ✅ FIXED: Check for authenticated instead of success
