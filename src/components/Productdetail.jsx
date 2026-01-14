@@ -63,8 +63,8 @@ const ProductDetail = () => {
       setQuantity(quantity + 1);
   };
 
-  // Add to cart
-  const handleAddToCart = async () => {
+  // Add to cart// Add to cart - FIXED VERSION
+const handleAddToCart = async () => {
   if (!user) {
     navigate("/login", { state: { from: location.pathname } });
     return;
@@ -72,25 +72,37 @@ const ProductDetail = () => {
   if (!product || product.stockStatus === "out") return alert("Out of stock");
 
   try {
-    console.log("Adding to cart with:", {
-      productId: product._id,
-      quantity,
-      userId: user._id,
-      token: user.token
-    });
+    console.log("User from context:", user);
+    
+    // Make sure we have a token
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please login again");
+      navigate("/login");
+      return;
+    }
 
-    // Try with explicit headers
+    // Test the token first
+    const testResponse = await fetch(`${BACKEND_URL}/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!testResponse.ok) {
+      alert("Session expired. Please login again.");
+      navigate("/login");
+      return;
+    }
+
+    // Now add to cart
     const res = await api.post(
       "/cart/add",
       { 
         productId: product._id, 
         quantity 
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${user.token || localStorage.getItem("token")}`
-        }
       }
+      // No extra headers needed if axios interceptor is working
     );
     
     alert(res.data.message || "Added to cart");

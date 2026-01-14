@@ -8,38 +8,65 @@ export default function CheckoutPage() {
   const { user } = useAuth();
 
   // 🛒 Cart from backend
+  const [cart, setCart] = useState(null);
   const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // 📝 Form state
   const [formData, setFormData] = useState({
-    fullName: "",
+    fullName: user?.name || "",
     address: "",
     city: "",
     postalCode: "",
-    phone: "",
-    paymentMethod: "credit_card",
+    phone: user?.phone || "",
+    paymentMethod: "cod",
   });
 
-  const [loading, setLoading] = useState(false);
+  const [orderLoading, setOrderLoading] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [orderId, setOrderId] = useState("");
 
-  // 🔄 Fetch cart from backend
+  // 🔄 Fetch cart from backend - FIXED
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const res = await api.get("/cart", {
-          withCredentials: true,
-        });
-
-        setCartItems(res.data.cart.items || []);
+        setLoading(true);
+        const res = await api.get("/cart");
+        
+        console.log("Cart API Response:", res.data);
+        
+        if (res.data.success) {
+          setCart(res.data.cart);
+          
+          // ✅ Use cart.items which already has price snapshot
+          const items = res.data.cart?.items || [];
+          console.log("Cart items with prices:", items.map(item => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            hasProductObj: !!item.product,
+            productPrice: item.product?.price
+          })));
+          
+          setCartItems(items);
+        } else {
+          console.error("Cart fetch failed:", res.data.message);
+          setCartItems([]);
+        }
       } catch (err) {
-        console.error("Failed to fetch cart", err);
+        console.error("Failed to fetch cart", err.response?.data || err);
+        setCartItems([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (user) fetchCart();
-  }, [user]);
+    if (user) {
+      fetchCart();
+    } else {
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
   // ✏️ Handle form change
   const handleChange = (e) => {
@@ -47,15 +74,23 @@ export default function CheckoutPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 💰 Calculate total from backend cart
+  // 💰 Calculate total from backend cart - FIXED
   const calculateTotal = () => {
-    return cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
+    if (!cart) return 0;
+    
+    // Use backend cartTotal if available (from pre-save hook)
+    if (cart.cartTotal) return cart.cartTotal;
+    
+    // Fallback calculation using item.price (NOT item.product.price)
+    return cartItems.reduce((sum, item) => {
+      // ✅ Use item.price which is stored in cart schema
+      const price = item.price || 0;
+      const quantity = item.quantity || 1;
+      return sum + (price * quantity);
+    }, 0);
   };
 
-  // 📦 Submit order
+  // 📦 Submit order - FIXED VERSION
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -75,34 +110,68 @@ export default function CheckoutPage() {
       return;
     }
 
-    setLoading(true);
+    setOrderLoading(true);
 
     try {
-      const res = await api.post(
-        "/orders/create",
-        {
-          ...formData,
-          items: cartItems,
-          totalAmount: calculateTotal(),
+      // ✅ Create order with proper data
+      const orderRes = await api.post("/orders/create", {
+        shippingAddress: {
+          fullName: formData.fullName,
+          address: formData.address,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          phone: formData.phone,
         },
-        { withCredentials: true }
-      );
-
-      setOrderId(res.data.orderId);
-      setOrderSuccess(true);
-
-      // 🧹 Clear backend cart
-      await api.delete("/api/cart/clear", {
-        withCredentials: true,
+        paymentMethod: formData.paymentMethod,
+        totalAmount: calculateTotal(),
+        // Send cart items with their snapshot data
+        items: cartItems.map(item => ({
+          product: item.product, // The ObjectId
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image
+        }))
       });
 
-      setTimeout(() => navigate("/orders"), 3000);
+      console.log("Order response:", orderRes.data);
+      
+      if (orderRes.data.success) {
+        setOrderId(orderRes.data.order?._id || orderRes.data.orderId);
+        setOrderSuccess(true);
+        
+        // ✅ Clear cart after successful order
+        try {
+          await api.delete("/cart/clear");
+          console.log("Cart cleared successfully");
+        } catch (clearErr) {
+          console.warn("Failed to clear cart:", clearErr.message);
+        }
+
+        // Navigate to orders page after 3 seconds
+        setTimeout(() => navigate("/orders"), 3000);
+      } else {
+        throw new Error(orderRes.data.message || "Order failed");
+      }
     } catch (err) {
-      alert(err.response?.data?.message || "Order failed");
+      console.error("Order error:", err.response?.data || err);
+      alert(err.response?.data?.message || "Order failed. Please try again.");
     } finally {
-      setLoading(false);
+      setOrderLoading(false);
     }
   };
+
+  // ⏳ Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-lg">Loading your cart...</p>
+        </div>
+      </div>
+    );
+  }
 
   // 🎉 Success UI
   if (orderSuccess) {
@@ -113,93 +182,187 @@ export default function CheckoutPage() {
           <h1 className="text-2xl font-bold text-green-700 mb-2">
             Order Placed Successfully!
           </h1>
-          <p className="text-gray-600">
-            Order ID: <span className="font-mono font-bold">{orderId}</span>
+          <p className="text-gray-600 mb-4">
+            Your order ID is: <span className="font-mono font-bold">{orderId}</span>
           </p>
+          <p className="text-gray-500 text-sm">Redirecting to orders page...</p>
         </div>
       </div>
     );
   }
 
-  const subtotal = calculateTotal();
+  // 🛒 Empty cart
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md text-center">
+          <div className="text-5xl mb-4">🛒</div>
+          <h1 className="text-2xl font-bold mb-2">Your cart is empty</h1>
+          <p className="text-gray-600 mb-6">Add some products to checkout</p>
+          <button
+            onClick={() => navigate("/products")}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Browse Products
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Use cart.cartTotal if available, otherwise calculate
+  const subtotal = cart?.cartTotal || calculateTotal();
   const shipping = subtotal > 500 ? 0 : 50;
   const tax = subtotal * 0.18;
   const grandTotal = (subtotal + shipping + tax).toFixed(2);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Debug info - remove in production */}
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm font-medium">Debug: Cart has {cartItems.length} items</p>
+          <p className="text-xs">Cart Total from backend: ₹{cart?.cartTotal}</p>
+          <p className="text-xs">Calculated subtotal: ₹{calculateTotal()}</p>
+        </div>
+        
         <h1 className="text-3xl font-bold mb-2">Checkout</h1>
         <p className="text-gray-600 mb-6">Complete your purchase</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left column - Form */}
+          <div className="lg:col-span-2">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Shipping Info */}
+              <div className="bg-white p-6 rounded-xl border shadow-sm">
+                <h2 className="text-xl font-semibold mb-4">Shipping Information</h2>
 
-          {/* Shipping Info */}
-          <div className="bg-white p-6 rounded-xl border shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Shipping Information</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <input
+                    name="fullName"
+                    placeholder="Full Name *"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border rounded-lg"
+                    required
+                  />
 
-            <input
-              name="fullName"
-              placeholder="Full Name *"
-              value={formData.fullName}
-              onChange={handleChange}
-              className="w-full mb-3 px-4 py-2 border rounded-lg"
-              required
-            />
+                  <input
+                    name="phone"
+                    placeholder="Phone *"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border rounded-lg"
+                    required
+                  />
+                </div>
 
-            <input
-              name="phone"
-              placeholder="Phone *"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full mb-3 px-4 py-2 border rounded-lg"
-              required
-            />
+                <textarea
+                  name="address"
+                  placeholder="Full Address (Street, Area, Landmark) *"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border rounded-lg mb-4"
+                  rows="3"
+                  required
+                />
 
-            <textarea
-              name="address"
-              placeholder="Address *"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
-              rows="3"
-              required
-            />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    name="city"
+                    placeholder="City"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border rounded-lg"
+                  />
+
+                  <input
+                    name="postalCode"
+                    placeholder="Postal Code"
+                    value={formData.postalCode}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div className="bg-white p-6 rounded-xl border shadow-sm">
+                <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
+                <select
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border rounded-lg"
+                >
+                  <option value="cod">Cash on Delivery</option>
+                  <option value="card">Credit/Debit Card</option>
+                  <option value="bank">Bank Transfer</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={orderLoading || cartItems.length === 0}
+                className={`w-full py-4 rounded-xl font-medium text-lg ${
+                  orderLoading || cartItems.length === 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                }`}
+              >
+                {orderLoading ? "Processing..." : `Place Order - ₹${grandTotal}`}
+              </button>
+            </form>
           </div>
 
-          {/* Order Summary */}
-          <div className="bg-white p-6 rounded-xl border shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+          {/* Right column - Order Summary - FIXED */}
+          <div className="lg:col-span-1">
+            <div className="bg-white p-6 rounded-xl border shadow-sm sticky top-6">
+              <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+              
+              {/* Cart Items - FIXED: Use item.price, not item.product.price */}
+              <div className="mb-4 max-h-64 overflow-y-auto">
+                {cartItems.map((item, index) => (
+                  <div key={item._id || index} className="flex justify-between py-2 border-b">
+                    <div className="flex-1">
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">
+                        ₹{(item.price * item.quantity).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-400">₹{item.price} each</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>Rs{subtotal}</span>
-            </div>
+              {/* Totals */}
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
 
-            <div className="flex justify-between">
-              <span>Shipping</span>
-              <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
-            </div>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
+                </div>
 
-            <div className="flex justify-between">
-              <span>Tax (18%)</span>
-              <span>₹{tax.toFixed(2)}</span>
-            </div>
+                <div className="flex justify-between">
+                  <span>Tax (18%)</span>
+                  <span>₹{tax.toFixed(2)}</span>
+                </div>
 
-            <div className="border-t mt-2 pt-2 flex justify-between font-bold">
-              <span>Total</span>
-              <span>₹{grandTotal}</span>
+                <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>₹{grandTotal}</span>
+                </div>
+              </div>
             </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-medium"
-          >
-            {loading ? "Processing..." : `Place Order - ₹${grandTotal}`}
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );
