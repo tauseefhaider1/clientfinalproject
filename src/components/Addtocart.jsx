@@ -83,7 +83,7 @@ const handleSubmit = async () => {
 
   try {
     const { data } = await api.post(
-      "/api/orders/create",
+      "/orders/create",
       {
         paymentMethod: "cod", // or default
       },
