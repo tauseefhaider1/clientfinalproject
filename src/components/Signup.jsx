@@ -38,7 +38,7 @@ const Signup = () => {
     if (passwordError) return;
 
     try {
-      const { data } = await api.post("/api/auth/signup", formData);
+      const { data } = await api.post("/auth/signup", formData);
 
       if (data.otpRequired) {
         navigate("/verify-otp", {
