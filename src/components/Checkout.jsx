@@ -76,8 +76,7 @@ export default function CheckoutPage() {
       if (!item?.product?.price) return sum;
       return sum + (item.product.price * (item.quantity || 1));
     }, 0);
-  };
-const handleSubmit = async (e) => {
+  };const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (!user) {
@@ -108,29 +107,21 @@ const handleSubmit = async (e) => {
   setLoading(true);
 
   try {
-    // Prepare order data
+    // ✅ CORRECT ORDER DATA - matches backend schema
     const orderData = {
-      shippingInfo: {
+      shippingAddress: { // Changed from shippingInfo to shippingAddress
         fullName: formData.fullName,
         address: formData.address,
-        city: formData.city,
-        postalCode: formData.postalCode,
+        city: formData.city || "",
+        postalCode: formData.postalCode || "",
         phone: formData.phone,
       },
       paymentMethod: formData.paymentMethod,
-      items: cartItems.map(item => ({
-        product: item.product._id,
-        quantity: item.quantity,
-        price: item.product.price,
-        name: item.product.name
-      })),
-      totalAmount: calculateTotal(),
-      taxAmount: calculateTotal() * 0.18,
-      shippingAmount: calculateTotal() > 500 ? 0 : 50,
-      finalAmount: (calculateTotal() + (calculateTotal() * 0.18) + (calculateTotal() > 500 ? 0 : 50)).toFixed(2)
+      // REMOVE: items, totalAmount, taxAmount, shippingAmount, finalAmount
+      // Backend will get these from cart
     };
 
-    console.log("Submitting order:", orderData);
+    console.log("Order data being sent:", orderData);
 
     const res = await api.post(
       "/orders/create",
@@ -141,35 +132,28 @@ const handleSubmit = async (e) => {
     console.log("Order response:", res.data);
 
     if (res.data.success) {
-      setOrderId(res.data.orderId || res.data.order?._id || "N/A");
-      setOrderSuccess(true);
-
-      // 🧹 Clear backend cart
-      try {
-        await api.delete("/cart/clear", {
-          withCredentials: true,
-        });
-        console.log("Cart cleared successfully");
-      } catch (clearErr) {
-        console.warn("Cart clear failed (but order placed):", clearErr);
-      }
-
-      // 🎯 CHANGE HERE: Redirect to MyOrders page instead of showing success UI
-      setTimeout(() => {
-        navigate("/orders", { 
-          state: { 
-            orderCreated: true, 
-            orderId: res.data.orderId || res.data.order?._id 
-          }
-        });
-      }, 1500); // Reduced from 3000 to 1500ms
-
+      // Navigate to orders page
+      navigate("/orders", { 
+        state: { 
+          orderCreated: true, 
+          orderId: res.data.orderId || res.data.order?._id 
+        }
+      });
     } else {
       throw new Error(res.data.message || "Order creation failed");
     }
   } catch (err) {
     console.error("Order error:", err);
-    alert(err.response?.data?.message || err.message || "Order failed. Please try again.");
+    console.error("Error response:", err.response?.data);
+    
+    // Better error messages
+    if (err.response?.status === 400) {
+      alert(err.response?.data?.message || "Invalid order data");
+    } else if (err.response?.status === 500) {
+      alert("Server error. Please try again later.");
+    } else {
+      alert(err.message || "Order failed. Please try again.");
+    }
   } finally {
     setLoading(false);
   }

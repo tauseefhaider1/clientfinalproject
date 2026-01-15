@@ -236,49 +236,43 @@ export default function MyOrders() {
                 <div className="p-6">
                   <h4 className="font-semibold text-gray-700 mb-4">Order Items</h4>
                   <div className="space-y-4">
-                    {order.items?.map((item, index) => {
-                      // Handle both product object and populated product
-                      const product = item.product || {};
-                      const itemName = item.title || item.name || product.name || `Item ${index + 1}`;
-                      const itemPrice = item.price || product.price || 0;
-                      const itemImage = item.image || product.image;
-                      const itemQuantity = item.quantity || 1;
+{order.items?.map((item, index) => {
+  // Handle both product object and title field
+  const itemName = item.title || item.product?.name || `Item ${index + 1}`;
+  const itemPrice = item.price || item.product?.price || 0;
+  const itemImage = item.image || item.product?.image;
+  const itemQuantity = item.quantity || 1;
 
-                      return (
-                        <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
-                          <div className="flex items-center space-x-4">
-                            {/* Product Image */}
-                            <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                              {itemImage ? (
-                                <img 
-                                  src={itemImage} 
-                                  alt={itemName}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.parentElement.innerHTML = `
-                                      <div class="w-full h-full flex items-center justify-center bg-gray-300">
-                                        <span class="text-gray-500 text-xs">IMG</span>
-                                      </div>
-                                    `;
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                                  <span className="text-gray-500 text-xs">IMG</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Product Details */}
-                            <div>
-                              <p className="font-medium text-gray-800">{itemName}</p>
-                              <p className="text-sm text-gray-500">
-                                ₹{itemPrice.toFixed(2)} × {itemQuantity}
-                              </p>
-                            </div>
-                          </div>
-
+  return (
+    <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
+      <div className="flex items-center space-x-4">
+        <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+          {itemImage ? (
+            <img 
+              src={itemImage} 
+              alt={itemName}
+              className="w-full h-full object-cover"
+              onError={(e) => e.target.style.display = 'none'}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-300">
+              <span className="text-gray-500 text-xs">IMG</span>
+            </div>
+          )}
+        </div>
+        <div>
+          <p className="font-medium text-gray-800">{itemName}</p>
+          <p className="text-sm text-gray-500">
+            ₹{itemPrice.toFixed(2)} × {itemQuantity}
+          </p>
+        </div>
+      </div>
+      <p className="font-semibold text-gray-800">
+        ₹{(itemPrice * itemQuantity).toFixed(2)}
+      </p>
+    </div>
+  );
+})}
                           {/* Item Total */}
                           <div className="text-right">
                             <p className="font-semibold text-gray-800">
