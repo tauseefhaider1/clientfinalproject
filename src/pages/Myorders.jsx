@@ -7,22 +7,19 @@ export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // all, pending, delivered, cancelled
+  const [filter, setFilter] = useState("all");
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
 
-  // Check if redirected from checkout
   useEffect(() => {
     if (location.state?.orderCreated) {
       const orderId = location.state.orderId;
       alert(`✅ Order #${orderId} placed successfully!`);
-      // Clear state to prevent showing again on refresh
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-  // Fetch orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -49,12 +46,10 @@ export default function MyOrders() {
     }
   }, [user]);
 
-  // Filter orders
   const filteredOrders = filter === "all" 
     ? orders 
     : orders.filter(order => order.orderStatus?.toLowerCase() === filter.toLowerCase());
 
-  // Get status color
   const getStatusColor = (status) => {
     switch(status?.toLowerCase()) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -66,7 +61,6 @@ export default function MyOrders() {
     }
   };
 
-  // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', {
@@ -78,12 +72,10 @@ export default function MyOrders() {
     });
   };
 
-  // Calculate item total
   const calculateItemTotal = (price, quantity) => {
     return (price * quantity).toFixed(2);
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -95,7 +87,6 @@ export default function MyOrders() {
     );
   }
 
-  // Not logged in
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -117,7 +108,6 @@ export default function MyOrders() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 mb-8 text-white">
           <div className="flex flex-col md:flex-row md:items-center justify-between">
             <div>
@@ -135,7 +125,6 @@ export default function MyOrders() {
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center">
@@ -145,7 +134,6 @@ export default function MyOrders() {
           </div>
         )}
 
-        {/* Filters */}
         <div className="mb-6 bg-white rounded-lg shadow p-4">
           <div className="flex flex-wrap gap-2">
             <button
@@ -181,7 +169,6 @@ export default function MyOrders() {
           </div>
         </div>
 
-        {/* Orders List */}
         {filteredOrders.length === 0 ? (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center">
             <div className="text-6xl mb-4">📦</div>
@@ -205,7 +192,6 @@ export default function MyOrders() {
           <div className="space-y-6">
             {filteredOrders.map((order) => (
               <div key={order._id} className="bg-white rounded-xl shadow-lg overflow-hidden">
-                {/* Order Header */}
                 <div className="p-6 border-b">
                   <div className="flex flex-col md:flex-row md:items-center justify-between">
                     <div>
@@ -232,51 +218,49 @@ export default function MyOrders() {
                   </div>
                 </div>
 
-                {/* Order Items */}
                 <div className="p-6">
                   <h4 className="font-semibold text-gray-700 mb-4">Order Items</h4>
                   <div className="space-y-4">
-{order.items?.map((item, index) => {
-  // Handle both product object and title field
-  const itemName = item.title || item.product?.name || `Item ${index + 1}`;
-  const itemPrice = item.price || item.product?.price || 0;
-  const itemImage = item.image || item.product?.image;
-  const itemQuantity = item.quantity || 1;
+                    {order.items?.map((item, index) => {
+                      const itemName = item.title || item.product?.name || `Item ${index + 1}`;
+                      const itemPrice = item.price || item.product?.price || 0;
+                      const itemImage = item.image || item.product?.image;
+                      const itemQuantity = item.quantity || 1;
 
-  return (
-    <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
-      <div className="flex items-center space-x-4">
-        <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-          {itemImage ? (
-            <img 
-              src={itemImage} 
-              alt={itemName}
-              className="w-full h-full object-cover"
-              onError={(e) => e.target.style.display = 'none'}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-300">
-              <span className="text-gray-500 text-xs">IMG</span>
-            </div>
-          )}
-        </div>
-        <div>
-          <p className="font-medium text-gray-800">{itemName}</p>
-          <p className="text-sm text-gray-500">
-            ₹{itemPrice.toFixed(2)} × {itemQuantity}
-          </p>
-        </div>
-      </div>
-      <p className="font-semibold text-gray-800">
-        ₹{(itemPrice * itemQuantity).toFixed(2)}
-      </p>
-    </div>
-  );
-})}
-                          {/* Item Total */}
-                          <div className="text-right">
+                      return (
+                        <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                              {itemImage ? (
+                                <img 
+                                  src={itemImage} 
+                                  alt={itemName}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = `
+                                      <div class="w-full h-full flex items-center justify-center bg-gray-300">
+                                        <span class="text-gray-500 text-xs">IMG</span>
+                                      </div>
+                                    `;
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                                  <span className="text-gray-500 text-xs">IMG</span>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{itemName}</p>
+                              <p className="text-sm text-gray-500">
+                                ₹{itemPrice.toFixed(2)} × {itemQuantity}
+                              </p>
+                            </div>
+                          </div>
+                          <div>
                             <p className="font-semibold text-gray-800">
-                              ₹{calculateItemTotal(itemPrice, itemQuantity)}
+                              ₹{(itemPrice * itemQuantity).toFixed(2)}
                             </p>
                             {item.orderStatus && (
                               <span className={`text-xs px-2 py-1 rounded ${getStatusColor(item.orderStatus)}`}>
@@ -290,23 +274,20 @@ export default function MyOrders() {
                   </div>
                 </div>
 
-                {/* Order Footer */}
                 <div className="bg-gray-50 p-6 border-t">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Shipping Info */}
-                    {order.shippingInfo && (
+                    {order.shippingAddress && (
                       <div>
                         <h5 className="font-semibold text-gray-700 mb-2">Shipping Address</h5>
                         <p className="text-sm text-gray-600">
-                          {order.shippingInfo.fullName}<br />
-                          {order.shippingInfo.address}<br />
-                          {order.shippingInfo.city} {order.shippingInfo.postalCode}<br />
-                          Phone: {order.shippingInfo.phone}
+                          {order.shippingAddress.fullName}<br />
+                          {order.shippingAddress.address}<br />
+                          {order.shippingAddress.city} {order.shippingAddress.postalCode}<br />
+                          Phone: {order.shippingAddress.phone}
                         </p>
                       </div>
                     )}
 
-                    {/* Payment Info */}
                     <div>
                       <h5 className="font-semibold text-gray-700 mb-2">Payment</h5>
                       <p className="text-sm text-gray-600">
@@ -317,7 +298,6 @@ export default function MyOrders() {
                       </p>
                     </div>
 
-                    {/* Actions */}
                     <div className="md:text-right">
                       <div className="space-x-3">
                         <button
@@ -327,7 +307,7 @@ export default function MyOrders() {
                           Track Order
                         </button>
                         <button
-                          onClick={() => alert(`View details for order #${order._id}`)}
+                          onClick={() => navigate(`/orders/${order._id}`)}
                           className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition"
                         >
                           View Details
@@ -344,7 +324,6 @@ export default function MyOrders() {
           </div>
         )}
 
-        {/* Summary Stats */}
         {orders.length > 0 && (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg shadow p-4 text-center">
@@ -372,7 +351,6 @@ export default function MyOrders() {
           </div>
         )}
 
-        {/* Help Section */}
         <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
           <h3 className="font-bold text-lg text-gray-800 mb-2">Need help with your order?</h3>
           <p className="text-gray-600 mb-4">
