@@ -63,56 +63,52 @@ const ProductDetail = () => {
       setQuantity(quantity + 1);
   };
 
-  // Add to cart// Add to cart - FIXED VERSION
-const handleAddToCart = async () => {
-  if (!user) {
-    navigate("/login", { state: { from: location.pathname } });
-    return;
-  }
-  if (!product || product.stockStatus === "out") return alert("Out of stock");
-
-  try {
-    console.log("User from context:", user);
+  // ✅ CORRECTED: Add to cart function (SINGLE function, no duplicates)
+  const handleAddToCart = async () => {
+    if (!user) {
+      navigate("/login", { state: { from: location.pathname } });
+      return;
+    }
     
-    // Make sure we have a token
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Please login again");
-      navigate("/login");
+    if (!product || product.stockStatus === "out") {
+      alert("Out of stock");
       return;
     }
 
-    // Test the token first
-    const testResponse = await fetch(`${BACKEND_URL}/auth/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (!testResponse.ok) {
-      alert("Session expired. Please login again.");
-      navigate("/login");
-      return;
-    }
+    try {
+      console.log("Adding to cart:", {
+        productId: product._id,
+        userId: user.id,
+        token: localStorage.getItem("token")
+      });
 
-    // Now add to cart
-    const res = await api.post(
-      "/cart/add",
-      { 
-        productId: product._id, 
-        quantity 
+      // ✅ Use api instance that should have Authorization header
+      const res = await api.post("/cart/add", {
+        productId: product._id,
+        quantity: quantity
+      });
+      
+      if (res.data.success) {
+        alert("Added to cart!");
+        // Optional: Refresh cart badge count
+      } else {
+        throw new Error(res.data.message || "Failed to add");
       }
-      // No extra headers needed if axios interceptor is working
-    );
-    
-    alert(res.data.message || "Added to cart");
-  } catch (err) {
-    console.error("Add to cart failed:", err);
-    console.error("Full error:", err.response?.data);
-    alert(err.response?.data?.message || "Failed to add to cart");
-  }
-};
-  // Buy now → add to cart then go to cart page
+    } catch (err) {
+      console.error("Add to cart error:", err.response?.data || err);
+      
+      // Check if it's auth error
+      if (err.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        alert(err.response?.data?.message || "Failed to add to cart");
+      }
+    }
+  };
+
+  // ✅ CORRECTED: Buy now function
   const handleBuyNow = async () => {
     if (!user) {
       navigate("/login", { state: { from: location.pathname } });
@@ -122,16 +118,28 @@ const handleAddToCart = async () => {
 
     try {
       // Add to cart first
-      await api.post(
-        "/cart/add",
-        { productId: product._id, quantity },
-        { withCredentials: true }
-      );
-      // Navigate to cart page
-      navigate("/cart");
+      const res = await api.post("/cart/add", {
+        productId: product._id,
+        quantity: quantity
+      });
+      
+      if (res.data.success) {
+        // Navigate to cart page only if successful
+        navigate("/cart");
+      } else {
+        throw new Error(res.data.message || "Failed to add to cart");
+      }
     } catch (err) {
-      console.error("Buy now failed:", err.response || err);
-      alert(err.response?.data?.message || "Failed to proceed");
+      console.error("Buy now failed:", err.response?.data || err);
+      
+      // Check if it's auth error
+      if (err.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        alert(err.response?.data?.message || "Failed to proceed");
+      }
     }
   };
 
