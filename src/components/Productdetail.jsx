@@ -193,8 +193,132 @@ const ProductDetail = () => {
           />
         </div>
 
-        {/* Details - Rest of your JSX remains the same */}
-        {/* ... */}
+        {/* Details */}
+        <div className="space-y-5">
+          <h1 className="text-3xl font-bold">{product.name}</h1>
+
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-bold">{formatPricePKR(product.price)}</span>
+            {product.originalPrice > product.price && (
+              <span className="line-through text-gray-400">
+                {formatPricePKR(product.originalPrice)}
+              </span>
+            )}
+          </div>
+
+          {product.discount > 0 && (
+            <div className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
+              {product.discount}% OFF
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <span className={`font-semibold ${stockColor[product.stockStatus]}`}>
+              {stockText[product.stockStatus]}
+            </span>
+            {product.stockStatus === "limited" && (
+              <span className="text-sm text-gray-500">• Hurry, only a few left!</span>
+            )}
+          </div>
+
+          {/* Quantity */}
+          <div className="flex items-center gap-4 mt-4">
+            <span className="font-medium">Quantity:</span>
+            <div className="flex items-center border rounded-lg">
+              <button
+                onClick={() => handleQuantityChange("decrease")}
+                className="px-4 py-2 hover:bg-gray-100 disabled:opacity-50"
+                disabled={quantity <= 1}
+              >
+                −
+              </button>
+              <span className="px-4 py-2 border-x min-w-[40px] text-center">{quantity}</span>
+              <button
+                onClick={() => handleQuantityChange("increase")}
+                className="px-4 py-2 hover:bg-gray-100 disabled:opacity-50"
+                disabled={product.stockStatus === "out"}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 mt-6">
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stockStatus === "out"}
+              className={`flex-1 py-3 rounded-xl text-white font-medium transition ${
+                product.stockStatus === "out" ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              Add to Cart
+            </button>
+            <button
+              onClick={handleBuyNow}
+              disabled={product.stockStatus === "out"}
+              className={`flex-1 py-3 rounded-xl text-white font-medium transition ${
+                product.stockStatus === "out" ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
+              }`}
+            >
+              Buy Now
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="mt-8 border-t pt-6">
+            <div className="flex border-b">
+              <button
+                className={`px-4 py-2 font-medium text-lg transition ${
+                  activeTab === "description"
+                    ? "border-b-2 border-blue-600 text-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+                onClick={() => setActiveTab("description")}
+              >
+                Description
+              </button>
+              <button
+                className={`px-4 py-2 font-medium text-lg transition ${
+                  activeTab === "details"
+                    ? "border-b-2 border-blue-600 text-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+                onClick={() => setActiveTab("details")}
+              >
+                Details
+              </button>
+            </div>
+
+            <div className="mt-6">
+              {activeTab === "description" && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {product.description || "No description available."}
+                  </p>
+                </div>
+              )}
+              {activeTab === "details" && (
+                <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+                  <div className="flex justify-between border-b py-2">
+                    <span className="font-medium text-gray-600">Product ID:</span>
+                    <span className="font-mono text-sm">{product._id}</span>
+                  </div>
+                  <div className="flex justify-between border-b py-2">
+                    <span className="font-medium text-gray-600">Stock Status:</span>
+                    <span className={stockColor[product.stockStatus]}>{stockText[product.stockStatus]}</span>
+                  </div>
+                  {product.createdAt && (
+                    <div className="flex justify-between border-b py-2">
+                      <span className="font-medium text-gray-600">Added:</span>
+                      <span>{new Date(product.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Debug button - remove in production */}
