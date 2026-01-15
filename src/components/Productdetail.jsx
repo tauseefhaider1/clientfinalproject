@@ -296,7 +296,7 @@ const ProductDetail = () => {
   // Use only base URL without /api for images
   const BASE_URL =
     import.meta.env.VITE_BACKEND_URL ||
-    "https://backend-final-project1-production.up.railway.app";
+    "https://backend-final-project1-production.up.railway.app/api";
 
   // Format price for PKR
   const formatPricePKR = (price) =>
