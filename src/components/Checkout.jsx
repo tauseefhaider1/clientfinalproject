@@ -77,97 +77,103 @@ export default function CheckoutPage() {
       return sum + (item.product.price * (item.quantity || 1));
     }, 0);
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  if (!user) {
+    alert("Please login first");
+    navigate("/login");
+    return;
+  }
 
-    if (!user) {
-      alert("Please login first");
-      navigate("/login");
-      return;
-    }
+  // Form validation
+  if (!formData.fullName.trim() || !formData.address.trim() || !formData.phone.trim()) {
+    alert("Please fill all required fields (*)");
+    return;
+  }
 
-    // Form validation
-    if (!formData.fullName.trim() || !formData.address.trim() || !formData.phone.trim()) {
-      alert("Please fill all required fields (*)");
-      return;
-    }
+  // Phone validation
+  const phoneRegex = /^[0-9]{10}$/;
+  if (!phoneRegex.test(formData.phone.replace(/\D/g, ""))) {
+    alert("Please enter a valid 10-digit phone number");
+    return;
+  }
 
-    // Phone validation (optional)
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(formData.phone.replace(/\D/g, ""))) {
-      alert("Please enter a valid 10-digit phone number");
-      return;
-    }
+  if (cartItems.length === 0) {
+    alert("Your cart is empty");
+    navigate("/");
+    return;
+  }
 
-    if (cartItems.length === 0) {
-      alert("Your cart is empty");
-      navigate("/");
-      return;
-    }
+  setLoading(true);
 
-    setLoading(true);
+  try {
+    // Prepare order data
+    const orderData = {
+      shippingInfo: {
+        fullName: formData.fullName,
+        address: formData.address,
+        city: formData.city,
+        postalCode: formData.postalCode,
+        phone: formData.phone,
+      },
+      paymentMethod: formData.paymentMethod,
+      items: cartItems.map(item => ({
+        product: item.product._id,
+        quantity: item.quantity,
+        price: item.product.price,
+        name: item.product.name
+      })),
+      totalAmount: calculateTotal(),
+      taxAmount: calculateTotal() * 0.18,
+      shippingAmount: calculateTotal() > 500 ? 0 : 50,
+      finalAmount: (calculateTotal() + (calculateTotal() * 0.18) + (calculateTotal() > 500 ? 0 : 50)).toFixed(2)
+    };
 
-    try {
-      // Prepare order data
-      const orderData = {
-        shippingInfo: {
-          fullName: formData.fullName,
-          address: formData.address,
-          city: formData.city,
-          postalCode: formData.postalCode,
-          phone: formData.phone,
-        },
-        paymentMethod: formData.paymentMethod,
-        items: cartItems.map(item => ({
-          product: item.product._id,
-          quantity: item.quantity,
-          price: item.product.price,
-          name: item.product.name
-        })),
-        totalAmount: calculateTotal(),
-        taxAmount: calculateTotal() * 0.18,
-        shippingAmount: calculateTotal() > 500 ? 0 : 50,
-        finalAmount: (calculateTotal() + (calculateTotal() * 0.18) + (calculateTotal() > 500 ? 0 : 50)).toFixed(2)
-      };
+    console.log("Submitting order:", orderData);
 
-      console.log("Submitting order:", orderData);
+    const res = await api.post(
+      "/orders/create",
+      orderData,
+      { withCredentials: true }
+    );
 
-      const res = await api.post(
-        "/orders/create",
-        orderData,
-        { withCredentials: true }
-      );
+    console.log("Order response:", res.data);
 
-      console.log("Order response:", res.data);
+    if (res.data.success) {
+      setOrderId(res.data.orderId || res.data.order?._id || "N/A");
+      setOrderSuccess(true);
 
-      if (res.data.success) {
-        setOrderId(res.data.orderId || res.data.order?._id || "N/A");
-        setOrderSuccess(true);
-
-        // 🧹 Clear backend cart
-        try {
-          await api.delete("/cart/clear", {
-            withCredentials: true,
-          });
-          console.log("Cart cleared successfully");
-        } catch (clearErr) {
-          console.warn("Cart clear failed (but order placed):", clearErr);
-        }
-
-        // Auto-redirect after 3 seconds
-        setTimeout(() => navigate("/orders"), 3000);
-      } else {
-        throw new Error(res.data.message || "Order creation failed");
+      // 🧹 Clear backend cart
+      try {
+        await api.delete("/cart/clear", {
+          withCredentials: true,
+        });
+        console.log("Cart cleared successfully");
+      } catch (clearErr) {
+        console.warn("Cart clear failed (but order placed):", clearErr);
       }
-    } catch (err) {
-      console.error("Order error:", err);
-      alert(err.response?.data?.message || err.message || "Order failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
+      // 🎯 CHANGE HERE: Redirect to MyOrders page instead of showing success UI
+      setTimeout(() => {
+        navigate("/orders", { 
+          state: { 
+            orderCreated: true, 
+            orderId: res.data.orderId || res.data.order?._id 
+          }
+        });
+      }, 1500); // Reduced from 3000 to 1500ms
+
+    } else {
+      throw new Error(res.data.message || "Order creation failed");
+    }
+  } catch (err) {
+    console.error("Order error:", err);
+    alert(err.response?.data?.message || err.message || "Order failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
   // 🎉 Success UI
   if (orderSuccess) {
     return (
@@ -427,23 +433,23 @@ export default function CheckoutPage() {
 
             {/* Submit Button */}
             <button
-              type="submit"
-              disabled={loading || cartItems.length === 0}
-              className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 ${
-                loading || cartItems.length === 0
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-              } text-white`}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                  Processing Order...
-                </div>
-              ) : (
-                `Place Order - ₹${grandTotal}`
-              )}
-            </button>
+  type="submit"
+  disabled={loading || cartItems.length === 0}
+  className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 ${
+    loading || cartItems.length === 0
+      ? 'bg-gray-400 cursor-not-allowed'
+      : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+  } text-white`}
+>
+  {loading ? (
+    <div className="flex items-center justify-center">
+      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+      Creating Order...
+    </div>
+  ) : (
+    `Place Order & View Orders - ₹${grandTotal}`
+  )}
+</button>
 
             {/* Security Notice */}
             <p className="text-center text-sm text-gray-500 pt-4">
