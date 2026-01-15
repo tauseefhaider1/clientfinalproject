@@ -9,45 +9,49 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      console.log("🔐 Checking auth status...");
+      const token = localStorage.getItem("token");
       
+      if (!token) {
+        console.log("🔐 No token found");
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
+      // Test the token
       const res = await api.get("/auth/me");
       
-      if (res.data.success && res.data.user) {
-        console.log("✅ User authenticated:", res.data.user.email);
+      if (res.data.success) {
+        console.log("✅ User authenticated:", res.data.user?.email);
         setUser(res.data.user);
-        
-        // Store user in localStorage for persistence
-        localStorage.setItem("user", JSON.stringify(res.data.user));
       } else {
-        console.warn("⚠️ No active session");
+        console.warn("⚠️ Auth failed, clearing token");
+        localStorage.removeItem("token");
         setUser(null);
-        localStorage.removeItem("user");
       }
     } catch (err) {
-      console.error("❌ Auth check failed:", {
-        status: err.response?.status,
-        message: err.response?.data?.message
-      });
-      
+      console.error("❌ Auth check error:", err.response?.status);
+      localStorage.removeItem("token");
       setUser(null);
-      localStorage.removeItem("user");
     } finally {
       setLoading(false);
     }
   };
 
-  const login = (userData) => {
-    console.log("🔐 Login success, setting user:", userData.email);
-    setUser(userData);
+  const login = (userData, token) => {
+    console.log("🔐 Login with token:", token ? "Token received" : "No token");
     
-    // Store in localStorage
-    if (userData) {
-      localStorage.setItem("user", JSON.stringify(userData));
+    if (token) {
+      localStorage.setItem("token", token);
     }
     
-    // Verify the session is active
-    setTimeout(() => checkAuth(), 500);
+    if (userData) {
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+    }
+    
+    // Verify auth after login
+    setTimeout(() => checkAuth(), 100);
   };
 
   const logout = async () => {
@@ -56,13 +60,13 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn("Logout API failed:", err.message);
     } finally {
-      setUser(null);
+      localStorage.removeItem("token");
       localStorage.removeItem("user");
+      setUser(null);
       console.log("✅ User logged out");
     }
   };
 
-  // Check auth on mount
   useEffect(() => {
     checkAuth();
   }, []);

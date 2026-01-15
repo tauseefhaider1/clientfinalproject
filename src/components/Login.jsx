@@ -11,46 +11,29 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
 
     setLoading(true);
-    setError("");
 
     try {
-      console.log("🔐 Attempting login...");
-      
-      // ✅ Login with cookies (withCredentials is set in axios config)
       const { data } = await api.post("/auth/login", {
         email,
         password,
       });
 
-      console.log("✅ Login response:", data);
+      console.log("✅ Login response token:", data.token ? "YES" : "NO");
       
-      if (data.success) {
-        // ✅ Backend sets session cookie automatically
-        login(data.user);
-        
-        // Test session immediately
-        try {
-          const testResponse = await api.get("/auth/me");
-          console.log("✅ Session verified:", testResponse.data);
-        } catch (verifyErr) {
-          console.error("❌ Session verification failed:", verifyErr);
-        }
-        
-        const redirectTo = location.state?.from || "/";
-        navigate(redirectTo, { replace: true });
-      } else {
-        throw new Error(data.message || "Login failed");
-      }
+      // ✅ CRITICAL: Pass BOTH user data AND token to login
+      login(data.user, data.token);
+
+      const redirectTo = location.state?.from || "/";
+      navigate(redirectTo, { replace: true });
+
     } catch (error) {
-      console.error("❌ Login error:", error.response?.data || error);
-      setError(error.response?.data?.message || "Login failed");
+      console.error("Login error:", error);
       alert(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
@@ -61,12 +44,6 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
         <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
-        
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
