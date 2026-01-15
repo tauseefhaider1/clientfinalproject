@@ -17,7 +17,7 @@ const ProductDetail = () => {
 
   const BACKEND_URL =
     import.meta.env.VITE_BACKEND_URL ||
-    "https://backend-final-project1-production.up.railway.app";
+    "https://backend-final-project1-production.up.railway.app"; // production fallback
 
   // Format price for PKR
   const formatPricePKR = (price) =>
@@ -63,53 +63,8 @@ const ProductDetail = () => {
       setQuantity(quantity + 1);
   };
 
-  // ✅ CORRECTED: Add to cart function (SINGLE function, no duplicates)
+  // Add to cart
   const handleAddToCart = async () => {
-    if (!user) {
-      navigate("/login", { state: { from: location.pathname } });
-      return;
-    }
-    
-    if (!product || product.stockStatus === "out") {
-      alert("Out of stock");
-      return;
-    }
-
-    try {
-      console.log("Adding to cart:", {
-        productId: product._id,
-        userId: user.id,
-        token: localStorage.getItem("token")
-      });
-
-      // ✅ Use api instance that should have Authorization header
-      const res = await api.post("/cart/add", {
-        productId: product._id,
-        quantity: quantity
-      });
-      
-      if (res.data.success) {
-        alert("Added to cart!");
-        // Optional: Refresh cart badge count
-      } else {
-        throw new Error(res.data.message || "Failed to add");
-      }
-    } catch (err) {
-      console.error("Add to cart error:", err.response?.data || err);
-      
-      // Check if it's auth error
-      if (err.response?.status === 401) {
-        alert("Session expired. Please login again.");
-        localStorage.removeItem("token");
-        navigate("/login");
-      } else {
-        alert(err.response?.data?.message || "Failed to add to cart");
-      }
-    }
-  };
-
-  // ✅ CORRECTED: Buy now function
-  const handleBuyNow = async () => {
     if (!user) {
       navigate("/login", { state: { from: location.pathname } });
       return;
@@ -117,30 +72,22 @@ const ProductDetail = () => {
     if (!product || product.stockStatus === "out") return alert("Out of stock");
 
     try {
-      // Add to cart first
-      const res = await api.post("/cart/add", {
-        productId: product._id,
-        quantity: quantity
-      });
-      
-      if (res.data.success) {
-        // Navigate to cart page only if successful
-        navigate("/cart");
-      } else {
-        throw new Error(res.data.message || "Failed to add to cart");
-      }
-    } catch (err) {
-      console.error("Buy now failed:", err.response?.data || err);
-      
-      // Check if it's auth error
-      if (err.response?.status === 401) {
-        alert("Session expired. Please login again.");
-        localStorage.removeItem("token");
-        navigate("/login");
-      } else {
-        alert(err.response?.data?.message || "Failed to proceed");
-      }
+      await api.post("/cart/add", { productId: product._id, quantity });
+      alert("Added to cart");
+    } catch {
+      alert("Failed to add to cart");
     }
+  };
+
+  // Buy now
+  const handleBuyNow = () => {
+    if (!user) {
+      navigate(`/login`, {
+        state: { from: `/checkout/${product._id}?qty=${quantity}` },
+      });
+      return;
+    }
+    navigate(`/checkout/${product._id}?qty=${quantity}`);
   };
 
   // Stock status
@@ -171,7 +118,9 @@ const ProductDetail = () => {
         <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold mb-4">{error || "Product not found"}</h2>
-          <p className="text-gray-600 mb-6">Sorry, we couldn't find this product.</p>
+          <p className="text-gray-600 mb-6">
+            Sorry, we couldn't find this product.
+          </p>
           <button
             onClick={() => navigate(-1)}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -191,9 +140,7 @@ const ProductDetail = () => {
             src={getImageUrl(product.image)}
             alt={product.name}
             className="w-full h-96 object-cover rounded-xl"
-            onError={(e) =>
-              (e.target.src = "https://via.placeholder.com/400x400?text=No+Image")
-            }
+            onError={(e) => (e.target.src = "https://via.placeholder.com/400x400?text=No+Image")}
           />
         </div>
 
@@ -253,9 +200,7 @@ const ProductDetail = () => {
               onClick={handleAddToCart}
               disabled={product.stockStatus === "out"}
               className={`flex-1 py-3 rounded-xl text-white font-medium transition ${
-                product.stockStatus === "out"
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
+                product.stockStatus === "out" ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
               Add to Cart
@@ -264,9 +209,7 @@ const ProductDetail = () => {
               onClick={handleBuyNow}
               disabled={product.stockStatus === "out"}
               className={`flex-1 py-3 rounded-xl text-white font-medium transition ${
-                product.stockStatus === "out"
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-orange-500 hover:bg-orange-600"
+                product.stockStatus === "out" ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
               }`}
             >
               Buy Now
@@ -314,9 +257,7 @@ const ProductDetail = () => {
                   </div>
                   <div className="flex justify-between border-b py-2">
                     <span className="font-medium text-gray-600">Stock Status:</span>
-                    <span className={stockColor[product.stockStatus]}>
-                      {stockText[product.stockStatus]}
-                    </span>
+                    <span className={stockColor[product.stockStatus]}>{stockText[product.stockStatus]}</span>
                   </div>
                   {product.createdAt && (
                     <div className="flex justify-between border-b py-2">
