@@ -70,7 +70,7 @@ export default function CheckoutPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 💰 Safe total calculation with null checks
+  //  Safe total calculation with null checks
   const calculateTotal = () => {
     return cartItems.reduce((sum, item) => {
       if (!item?.product?.price) return sum;
