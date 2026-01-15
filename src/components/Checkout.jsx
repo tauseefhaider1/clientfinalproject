@@ -92,7 +92,7 @@ export default function CheckoutPage() {
       setOrderSuccess(true);
 
       // 🧹 Clear backend cart
-      await api.delete("/api/cart/clear", {
+      await api.delete("/cart/clear", {
         withCredentials: true,
       });
 
