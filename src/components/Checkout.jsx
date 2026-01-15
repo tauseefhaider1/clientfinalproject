@@ -76,7 +76,9 @@ export default function CheckoutPage() {
       if (!item?.product?.price) return sum;
       return sum + (item.product.price * (item.quantity || 1));
     }, 0);
-  };const handleSubmit = async (e) => {
+  };// Update the handleSubmit function in your CheckoutPage.js:
+
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (!user) {
@@ -107,9 +109,9 @@ export default function CheckoutPage() {
   setLoading(true);
 
   try {
-    // ✅ CORRECT ORDER DATA - matches backend schema
+    // ✅ CORRECT ORDER DATA
     const orderData = {
-      shippingAddress: { // Changed from shippingInfo to shippingAddress
+      shippingAddress: {
         fullName: formData.fullName,
         address: formData.address,
         city: formData.city || "",
@@ -117,11 +119,9 @@ export default function CheckoutPage() {
         phone: formData.phone,
       },
       paymentMethod: formData.paymentMethod,
-      // REMOVE: items, totalAmount, taxAmount, shippingAmount, finalAmount
-      // Backend will get these from cart
     };
 
-    console.log("Order data being sent:", orderData);
+    console.log("Order data:", orderData);
 
     const res = await api.post(
       "/orders/create",
@@ -132,11 +132,11 @@ export default function CheckoutPage() {
     console.log("Order response:", res.data);
 
     if (res.data.success) {
-      // Navigate to orders page
+      // Navigate to orders page with order ID
       navigate("/orders", { 
         state: { 
           orderCreated: true, 
-          orderId: res.data.orderId || res.data.order?._id 
+          orderId: res.data.orderId 
         }
       });
     } else {
@@ -144,13 +144,11 @@ export default function CheckoutPage() {
     }
   } catch (err) {
     console.error("Order error:", err);
-    console.error("Error response:", err.response?.data);
     
-    // Better error messages
     if (err.response?.status === 400) {
       alert(err.response?.data?.message || "Invalid order data");
     } else if (err.response?.status === 500) {
-      alert("Server error. Please try again later.");
+      alert("Server error. Please check backend logs.");
     } else {
       alert(err.message || "Order failed. Please try again.");
     }
