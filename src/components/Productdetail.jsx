@@ -343,58 +343,54 @@ const ProductDetail = () => {
   };
 
   // Add to cart - SIMPLIFIED VERSION
-  const handleAddToCart = async () => {
-    if (!user) {
-      navigate("/login", { state: { from: location.pathname } });
-      return;
-    }
+ const handleAddToCart = async () => {
+  if (!user) {
+    navigate("/login", { state: { from: location.pathname } });
+    return;
+  }
+  
+  if (!product || product.stockStatus === "out") {
+    alert("Out of stock");
+    return;
+  }
+
+  try {
+    console.log("🛒 Adding to cart...");
     
-    if (!product || product.stockStatus === "out") {
-      alert("Out of stock");
-      return;
-    }
-
-    try {
-      console.log("📦 Adding to cart:", {
-        productId: product._id,
-        quantity: quantity,
-        userId: user._id || user.id
-      });
-
-      // Simple API call - let axios handle headers
-      const response = await api.post("/cart/add", { 
-        productId: product._id, 
-        quantity: quantity 
-      });
+    const response = await api.post("/cart/add", { 
+      productId: product._id, 
+      quantity: quantity 
+    });
+    
+    console.log("✅ Add to cart response:", response.data);
+    alert("Added to cart successfully!");
+    
+  } catch (error) {
+    console.error("❌ FULL ERROR OBJECT:", error);
+    
+    // Show the actual backend error message
+    if (error.response?.data) {
+      console.error("📡 Backend error details:", error.response.data);
       
-      console.log("✅ Add to cart response:", response.data);
-      alert("Added to cart successfully!");
+      // The 500 error message should be here
+      const errorMessage = error.response.data.message || 
+                          error.response.data.error || 
+                          "Server error";
       
-    } catch (error) {
-      console.error("❌ Add to cart error:", error);
+      console.error("🔴 Backend error message:", errorMessage);
       
-      // Show detailed error
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-        
-        if (error.response.status === 401) {
-          alert("Please login again.");
-          navigate("/login");
-        } else if (error.response.status === 400) {
-          alert(error.response.data.message || "Invalid request");
-        } else if (error.response.status === 500) {
-          alert("Server error. Check console for details.");
-        }
-      } else if (error.request) {
-        console.error("No response received:", error.request);
-        alert("Network error. Check your connection.");
+      if (errorMessage.includes("mongoose") || 
+          errorMessage.includes("validation") || 
+          errorMessage.includes("required")) {
+        alert(`Server error: ${errorMessage}\n\nPlease check backend logs.`);
       } else {
-        console.error("Request setup error:", error.message);
-        alert("Failed to add to cart: " + error.message);
+        alert("Server error. Please try again later.");
       }
+    } else {
+      alert("Network error. Please check your connection.");
     }
-  };
+  }
+};
 
   // Buy now
   const handleBuyNow = () => {
