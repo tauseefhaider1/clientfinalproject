@@ -26,35 +26,40 @@ export default function CheckoutPage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [orderId, setOrderId] = useState("");
 
-  // 🔄 Fetch cart from backend - FIXED
+  // 🔄 Fetch cart from backend - UPDATED WITH NULL PROTECTION
   useEffect(() => {
     const fetchCart = async () => {
       try {
         setLoading(true);
         const res = await api.get("/cart");
         
-        console.log("Cart API Response:", res.data);
+        console.log("🛒 CART API RESPONSE:", res.data);
         
         if (res.data.success) {
           setCart(res.data.cart);
           
-          // ✅ Use cart.items which already has price snapshot
-          const items = res.data.cart?.items || [];
-          console.log("Cart items with prices:", items.map(item => ({
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            hasProductObj: !!item.product,
-            productPrice: item.product?.price
-          })));
+          // ✅ CRITICAL FIX: Filter out items with null/undefined price
+          const items = (res.data.cart?.items || []).filter(item => {
+            // Check if item has a valid price
+            const hasValidPrice = item && 
+                                 typeof item.price === 'number' && 
+                                 !isNaN(item.price) && 
+                                 item.price > 0;
+            
+            if (!hasValidPrice) {
+              console.warn("⚠️ Removing cart item with invalid price:", item);
+            }
+            return hasValidPrice;
+          });
           
+          console.log(`✅ Cleaned ${items.length} valid cart items`);
           setCartItems(items);
         } else {
           console.error("Cart fetch failed:", res.data.message);
           setCartItems([]);
         }
       } catch (err) {
-        console.error("Failed to fetch cart", err.response?.data || err);
+        console.error("❌ Failed to fetch cart:", err.response?.data || err);
         setCartItems([]);
       } finally {
         setLoading(false);
@@ -74,23 +79,43 @@ export default function CheckoutPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 💰 Calculate total from backend cart - FIXED
+  // 💰 Calculate total - COMPLETELY SAFE VERSION
   const calculateTotal = () => {
-    if (!cart) return 0;
+    if (!cart || !Array.isArray(cartItems)) return 0;
     
-    // Use backend cartTotal if available (from pre-save hook)
-    if (cart.cartTotal) return cart.cartTotal;
+    // Use backend cartTotal if available
+    if (cart.cartTotal && typeof cart.cartTotal === 'number') {
+      return cart.cartTotal;
+    }
     
-    // Fallback calculation using item.price (NOT item.product.price)
-    return cartItems.reduce((sum, item) => {
-      // ✅ Use item.price which is stored in cart schema
-      const price = item.price || 0;
-      const quantity = item.quantity || 1;
-      return sum + (price * quantity);
-    }, 0);
+    // SAFE reduce with null checks
+    try {
+      const total = cartItems.reduce((sum, item) => {
+        if (!item) return sum;
+        
+        // Get price safely
+        const price = item.price || 
+                     (item.product && typeof item.product.price === 'number' ? item.product.price : 0) || 
+                     0;
+        
+        // Get quantity safely
+        const quantity = item.quantity || 1;
+        
+        // Ensure both are numbers
+        const itemPrice = Number(price) || 0;
+        const itemQty = Number(quantity) || 1;
+        
+        return sum + (itemPrice * itemQty);
+      }, 0);
+      
+      return total;
+    } catch (error) {
+      console.error("Error calculating total:", error);
+      return 0;
+    }
   };
 
-  // 📦 Submit order - FIXED VERSION
+  // 📦 Submit order - UPDATED
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -113,7 +138,7 @@ export default function CheckoutPage() {
     setOrderLoading(true);
 
     try {
-      // ✅ Create order with proper data
+      // ✅ Create order with safe data
       const orderRes = await api.post("/orders/create", {
         shippingAddress: {
           fullName: formData.fullName,
@@ -124,17 +149,17 @@ export default function CheckoutPage() {
         },
         paymentMethod: formData.paymentMethod,
         totalAmount: calculateTotal(),
-        // Send cart items with their snapshot data
-        items: cartItems.map(item => ({
-          product: item.product, // The ObjectId
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image
+        // Send only valid items
+        items: cartItems.filter(item => item && item.price).map(item => ({
+          product: item.product,
+          name: item.name || "Product",
+          price: item.price || 0,
+          quantity: item.quantity || 1,
+          image: item.image || ""
         }))
       });
 
-      console.log("Order response:", orderRes.data);
+      console.log("✅ Order response:", orderRes.data);
       
       if (orderRes.data.success) {
         setOrderId(orderRes.data.order?._id || orderRes.data.orderId);
@@ -143,9 +168,9 @@ export default function CheckoutPage() {
         // ✅ Clear cart after successful order
         try {
           await api.delete("/cart/clear");
-          console.log("Cart cleared successfully");
+          console.log("✅ Cart cleared successfully");
         } catch (clearErr) {
-          console.warn("Failed to clear cart:", clearErr.message);
+          console.warn("⚠️ Failed to clear cart:", clearErr.message);
         }
 
         // Navigate to orders page after 3 seconds
@@ -154,7 +179,7 @@ export default function CheckoutPage() {
         throw new Error(orderRes.data.message || "Order failed");
       }
     } catch (err) {
-      console.error("Order error:", err.response?.data || err);
+      console.error("❌ Order error:", err.response?.data || err);
       alert(err.response?.data?.message || "Order failed. Please try again.");
     } finally {
       setOrderLoading(false);
@@ -210,8 +235,8 @@ export default function CheckoutPage() {
     );
   }
 
-  // ✅ Use cart.cartTotal if available, otherwise calculate
-  const subtotal = cart?.cartTotal || calculateTotal();
+  // ✅ Calculate totals with null protection
+  const subtotal = calculateTotal();
   const shipping = subtotal > 500 ? 0 : 50;
   const tax = subtotal * 0.18;
   const grandTotal = (subtotal + shipping + tax).toFixed(2);
@@ -219,10 +244,11 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Debug info - remove in production */}
+        {/* Debug info - keep temporarily */}
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm font-medium">Debug: Cart has {cartItems.length} items</p>
-          <p className="text-xs">Cart Total from backend: ₹{cart?.cartTotal}</p>
+          <p className="text-sm font-medium">Debug Info:</p>
+          <p className="text-xs">Cart items: {cartItems.length}</p>
+          <p className="text-xs">Backend cart total: ₹{cart?.cartTotal || 0}</p>
           <p className="text-xs">Calculated subtotal: ₹{calculateTotal()}</p>
         </div>
         
@@ -315,27 +341,38 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          {/* Right column - Order Summary - FIXED */}
+          {/* Right column - Order Summary - ULTRA SAFE VERSION */}
           <div className="lg:col-span-1">
             <div className="bg-white p-6 rounded-xl border shadow-sm sticky top-6">
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
               
-              {/* Cart Items - FIXED: Use item.price, not item.product.price */}
+              {/* Cart Items - COMPLETELY SAFE */}
               <div className="mb-4 max-h-64 overflow-y-auto">
-                {cartItems.map((item, index) => (
-                  <div key={item._id || index} className="flex justify-between py-2 border-b">
-                    <div className="flex-1">
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">
-                        ₹{(item.price * item.quantity).toFixed(2)}
-                      </p>
-                      <p className="text-xs text-gray-400">₹{item.price} each</p>
-                    </div>
-                  </div>
-                ))}
+                {cartItems.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No valid items</p>
+                ) : (
+                  cartItems.map((item, index) => {
+                    // Safe extraction
+                    const itemName = item?.name || item?.product?.name || `Item ${index + 1}`;
+                    const itemPrice = item?.price || 0;
+                    const itemQuantity = item?.quantity || 1;
+                    
+                    return (
+                      <div key={item?._id || index} className="flex justify-between py-2 border-b">
+                        <div className="flex-1">
+                          <p className="font-medium truncate">{itemName}</p>
+                          <p className="text-sm text-gray-500">Qty: {itemQuantity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">
+                            ₹{(itemPrice * itemQuantity).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-gray-400">₹{itemPrice} each</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               {/* Totals */}
