@@ -17,7 +17,7 @@ const ProductDetail = () => {
 
   const BACKEND_URL =
     import.meta.env.VITE_BACKEND_URL ||
-    "https://backend-final-project1-production.up.railway.app"; // production fallback
+    "https://backend-final-project1-production.up.railway.app/api"; // production fallback
 
   // Format price for PKR
   const formatPricePKR = (price) =>
@@ -65,19 +65,57 @@ const ProductDetail = () => {
 
   // Add to cart
   const handleAddToCart = async () => {
-    if (!user) {
-      navigate("/login", { state: { from: location.pathname } });
-      return;
-    }
-    if (!product || product.stockStatus === "out") return alert("Out of stock");
+  if (!user) {
+    navigate("/login", { state: { from: location.pathname } });
+    return;
+  }
+  
+  if (!product || product.stockStatus === "out") {
+    alert("Out of stock");
+    return;
+  }
 
-    try {
-      await api.post("/cart/add", { productId: product._id, quantity });
-      alert("Added to cart");
-    } catch {
-      alert("Failed to add to cart");
+  try {
+    console.log("📦 Adding to cart:", {
+      productId: product._id,
+      quantity: quantity,
+      user: user.id // Log user ID to verify
+    });
+
+    const response = await api.post("/cart/add", { 
+      productId: product._id, 
+      quantity: quantity 
+    }, {
+      withCredentials: true, // Ensure this is set
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`, // Manual header
+      }
+    });
+    
+    console.log("✅ Add to cart response:", response.data);
+    alert("Added to cart successfully!");
+    
+  } catch (error) {
+    console.error("❌ Add to cart error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers,
+      config: error.config
+    });
+    
+    // Better error messages
+    if (error.response?.status === 401) {
+      alert("Session expired. Please login again.");
+      navigate("/login");
+    } else if (error.response?.status === 500) {
+      alert("Server error. Please try again later.");
+    } else {
+      alert(error.response?.data?.message || "Failed to add to cart");
     }
-  };
+  }
+};
+  
 
   // Buy now
   const handleBuyNow = () => {
