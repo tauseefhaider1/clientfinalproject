@@ -78,7 +78,6 @@ export default function CheckoutPage() {
     }, 0);
   };
 
-  📦 Submit order
   const handleSubmit = async (e) => {
     e.preventDefault();
 
