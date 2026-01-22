@@ -5,6 +5,8 @@ import api from "../api/Azios";
 export default function OtpVerification() {
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const inputsRef = useRef([]);
   const navigate = useNavigate();
@@ -41,22 +43,74 @@ export default function OtpVerification() {
     const enteredOtp = otp.join("");
 
     if (enteredOtp.length !== 6) {
-      alert("Please enter complete OTP");
+      setError("Please enter complete 6-digit OTP");
       return;
     }
 
     try {
       setLoading(true);
+      setError("");
+      setSuccess("");
 
-      await api.post("/auth/verify-otp", {
+      const response = await api.post("/auth/verify-otp", {
         email,
         otp: enteredOtp,
       });
 
-      alert("OTP verified successfully");
-      navigate("/login");
+      // Check if verification was successful
+      if (response.data && response.data.message === "OTP verified successfully") {
+        setSuccess("Email verified successfully! Redirecting to login...");
+        
+        // Store token if provided (optional)
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+        }
+        
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+      } else {
+        setError(response.data?.message || "Verification failed");
+      }
+      
     } catch (error) {
-      alert(error.response?.data?.message || "Invalid or expired OTP");
+      // Handle different error responses
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error ||
+                          "Invalid or expired OTP";
+      
+      setError(errorMessage);
+      
+      // If too many attempts, suggest resending OTP
+      if (error.response?.status === 429) {
+        setTimeout(() => {
+          if (window.confirm("Would you like to resend a new OTP?")) {
+            handleResendOtp();
+          }
+        }, 1000);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const response = await api.post("/auth/resend-otp", { email });
+      
+      if (response.data.success) {
+        setSuccess("New OTP sent to your email!");
+        
+        // Clear OTP fields
+        setOtp(Array(6).fill(""));
+        inputsRef.current[0].focus();
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to resend OTP");
     } finally {
       setLoading(false);
     }
@@ -78,6 +132,20 @@ export default function OtpVerification() {
           </span>
         </p>
 
+        {/* Success Message */}
+        {success && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">
+            {success}
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+
         {/* OTP Inputs */}
         <div className="flex justify-center gap-3 mb-8">
           {otp.map((digit, index) => (
@@ -92,6 +160,7 @@ export default function OtpVerification() {
               className="w-12 h-14 text-center text-xl font-bold border rounded-xl 
               focus:ring-2 focus:ring-indigo-500 focus:outline-none transition
               hover:border-indigo-400"
+              disabled={loading}
             />
           ))}
         </div>
@@ -102,14 +171,24 @@ export default function OtpVerification() {
           disabled={loading}
           className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 
           hover:opacity-90 text-white py-3 rounded-xl font-semibold shadow-md
-          transition disabled:opacity-50"
+          transition disabled:opacity-50 mb-3"
         >
           {loading ? "Verifying..." : "Verify OTP"}
         </button>
 
+        {/* Resend OTP Button */}
+        <button
+          onClick={handleResendOtp}
+          disabled={loading}
+          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 
+          py-3 rounded-xl font-semibold shadow-md transition disabled:opacity-50"
+        >
+          Resend OTP
+        </button>
+
         {/* Footer hint */}
         <p className="text-sm text-gray-500 mt-6">
-          Didn’t receive the code? Check your spam folder
+          Check your email inbox and spam folder
         </p>
       </div>
     </div>
